@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
-import pymysql
+import os
+import mysql.connector
 import bcrypt
 from datetime import datetime
 
@@ -10,13 +11,12 @@ def is_bug_time():
     return 4 <= now < 5
 
 def get_db():
-    return pymysql.connect(
-        host="localhost",
-        user="root",
-        password="200501",
-        database="userdata",
-        cursorclass=pymysql.cursors.DictCursor,
-        autocommit = False
+    return mysql.connector.connect(
+        host=os.getenv("DB_HOST"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        database=os.getenv("DB_NAME"),
+        port=os.getenv("DB_PORT")
     )
 
 @app.route("/")
@@ -86,12 +86,12 @@ def register():
     db = get_db()
     cursor = db.cursor()
 
-    cursor.execute("SELECT * FROM users WHERE email=%s", (name,))
+    cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
     user = cursor.fetchone()
     if user:
         return "Username already exists"
 
-    cursor.execute("SELECT COUNT(*) AS count FROM users WHERE username=%s", (email,))#error(email)
+    cursor.execute("SELECT COUNT(*) AS count FROM users WHERE username=%s", (name,))#error(email)
     count = cursor.fetchone()["count"]
     if count >= 3:
         return "This email already has 3 registered accounts!"
