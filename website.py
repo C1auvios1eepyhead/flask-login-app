@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request
-import os
-import mysql.connector
+import pymysql
 import bcrypt
 from datetime import datetime
 
@@ -11,12 +10,15 @@ def is_bug_time():
     return 4 <= now < 5
 
 def get_db():
-    return mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        database=os.getenv("DB_NAME"),
-        port=os.getenv("DB_PORT")
+    return pymysql.connect(
+        host="tramway.proxy.rlwy.net",
+        user="root",
+        password="OwvkAhLIqeGpQlmFzDdcGgMKgVJrylNL",
+        database="railway",
+        port=27811,
+        charset="utf8mb4",
+        autocommit=False,
+        cursorclass = pymysql.cursors.DictCursor
     )
 
 @app.route("/")
