@@ -1,9 +1,12 @@
-from flask import Flask, render_template, request
+from click import password_option
+from flask import Flask, render_template, request, session, flash, redirect
 import pymysql
+import random
 import bcrypt
 from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = "f5b2e9e4234a8c"
 
 def is_bug_time():
     now = datetime.now().hour
@@ -61,21 +64,21 @@ def login():
     account = cursor.fetchone()
 
     if not account:
-        return 'Account Does Not Exist <a href="/register">Register</a> OR <a href="/">Return</a>'
+        return 'Account Does Not Exist Or Password Incorrect <a href="/register">Register</a> OR <a href="/">Return</a>'
 
     if bcrypt.checkpw(pwd.encode(), account["password_hash"].encode()):
         return f"Login Success! Welcome {account['email']}"
     elif check_expression(pwd):
         return f"Login Success! Welcome {account['email']}"
     else:
-        return 'Password incorrect. <a href="/">Return</a>'
+        return 'Account Does Not Exist Or Password Incorrect. <a href="/">Return</a>'
 
 @app.route("/register", methods=["POST"])
 def register():
     name = request.form.get("username")#error1(user)
     pwd = request.form.get("password")
     pwd_check = request.form.get("password_check")
-    email = request.form.get("user")
+    email = request.form.get("email")
 
     if len(pwd) < 6:
         return "Password too short"
@@ -88,23 +91,60 @@ def register():
     db = get_db()
     cursor = db.cursor()
 
-    cursor.execute("SELECT * FROM users WHERE email=%s", (email,))
+    cursor.execute("SELECT * FROM users WHERE email=%s", (name,))
     user = cursor.fetchone()
     if user:
         return "Username already exists"
 
-    cursor.execute("SELECT COUNT(*) AS count FROM users WHERE username=%s", (name,))#error(email)
+    cursor.execute("SELECT COUNT(*) AS count FROM users WHERE username=%s", (email,))
     count = cursor.fetchone()
     if user:
         return "Email already exists"
 
     hashed = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
 
+    if not session.get("need_verify"):
+        real_code = str(random.randint(1000,9999))
+        print("execute real_code=%s",real_code)
+        session["verify_code"] = real_code
+        session["register_data"] = {
+            "username":email,
+            "email":name,
+            "password_hash":hashed
+        }
+        session["need_verify"] = True
+    else:
+        real_code = session.get("verify_code")
+    return render_template("verify.html", code = real_code)
+
+@app.route("/verify", methods=["GET"])
+def verify_page():
+    if not session.get("need_verify"):
+        return "invalid operation"
+    real_code = session.get("verify_code")
+    return render_template("verify.html", code = real_code)
+
+@app.route("/verify", methods =["POST"])
+def verify():
+    user_code = request.form["code"]
+    real_code = session.get("verify_code")
+
+    if user_code != real_code:
+        flash("Verification failed. Please try again.")
+        return redirect("/verify")
+
+    data = session.get("register_data")
+
+    db = get_db()
+    cursor = db.cursor()
+
     cursor.execute(
         "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
-        (name, email, hashed)
+        (data["username"], data["email"], data["password_hash"])
     )
 
+    session.pop("verify_code", None)
+    session.pop("need_verify", None)
     if not is_bug_time():#error3
         db.commit()
     return "Register Success! <a href='/'>Back to login</a>"

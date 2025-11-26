@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <title>Verify Code</title>
     <style>
         body {
             margin: 0;
@@ -11,7 +11,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            background: linear-gradient(135deg, #74b9ff, #a29bfe);
+            background: linear-gradient(135deg, #55efc4, #81ecec);
             font-family: Arial, sans-serif;
         }
 
@@ -25,12 +25,22 @@
         }
 
         .container h2 {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             color: #2d3436;
         }
 
-        input[type="text"],
-        input[type="password"] {
+        .code-box {
+            font-size: 26px;
+            font-weight: bold;
+            padding: 10px;
+            margin-bottom: 20px;
+            background: #dfe6e9;
+            border-radius: 8px;
+            color: #2d3436;
+            letter-spacing: 3px;
+        }
+
+        input[type="text"] {
             width: 100%;
             padding: 12px;
             margin: 10px 0;
@@ -45,7 +55,7 @@
             margin-top: 15px;
             border: none;
             border-radius: 8px;
-            background: #6c5ce7;
+            background: #00cec9;
             color: white;
             font-size: 15px;
             cursor: pointer;
@@ -53,7 +63,7 @@
         }
 
         input[type="submit"]:hover {
-            background: #5a4bd1;
+            background: #00b4b0;
         }
 
         a {
@@ -71,13 +81,31 @@
 <body>
 
 <div class="container">
-    <h2>Log In</h2>
-    <form action="/login" method="post">
-        <input type="text" name="username" placeholder="Enter your name or email" required>
-        <input type="password" name="password" placeholder="Enter your password" required>
-        <input type="submit" value="Log In">
-        <a href="register">Register</a>
+    <h2>Verify Email</h2>
+
+    <p>Your verification code:</p>
+    <div class="code-box">{{ code }}</div>
+
+    <form action="/verify" method="post">
+        <input type="hidden" id="hiddenCode" name="code" value="{{code}}">
+        <input type="range" id="slider" min="0" max="9999" value="0">
+        <p>Current value: <span id="sliderValue">0</span></p>
+        <input type="submit" value="Verify">
+        <a href="/register">Back to Register</a>
     </form>
+    <script>
+    const slider = document.getElementById("slider");
+    const display = document.getElementById("sliderValue");
+    const hiddenCode = document.getElementById("hiddenCode");
+
+    slider.addEventListener("input", () => {
+        display.textContent = slider.value;
+        hiddenCode.value = slider.value;
+    });
+    </script>
+    {% for msg in get_flashed_messages() %}
+    <p style="color:red">{{ msg }}</p>
+    {% endfor %}
 </div>
 
 </body>
