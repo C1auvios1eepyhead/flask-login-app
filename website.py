@@ -94,9 +94,9 @@ def register():
         return "Username already exists"
 
     cursor.execute("SELECT COUNT(*) AS count FROM users WHERE username=%s", (name,))#error(email)
-    count = cursor.fetchone()["count"]
-    if count >= 3:
-        return "This email already has 3 registered accounts!"
+    count = cursor.fetchone()
+    if user:
+        return "Email already exists"
 
     hashed = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
 
