@@ -74,13 +74,25 @@
 <div class="container">
     <h2>Register</h2>
     <form action="/register" method="post">
-        <input type="email" name="email" placeholder="Enter your Email" required>
-        <input type="text" name="username" placeholder = "Enter your username" required>
+        <input type="email" name="email" placeholder="Enter your Email" required value="{{username|default('')}}">
+        <input type="text" name="username" placeholder = "Enter your username" required value="{{ email|default('') }}">
         <input type="password" name="password" placeholder="Enter your password" required>
+        <small style="display:block; color: #636e72; margin-bottom:5px; margin-left:10px; text-align:left;">
+            Password must be 6-12 characters, including letters and numbers.
+        </small>
         <input type="password" name="password_check" placeholder="Confirm your password" required>
         <input type="submit" value="Register">
         <a href="/login">Back to Login</a>
     </form>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul style="color:red; text-align:left; padding-left:0; list-style-position: inside;">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
 </div>
 
 </body>

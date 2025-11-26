@@ -69,15 +69,23 @@
     </style>
 </head>
 <body>
-
 <div class="container">
     <h2>Log In</h2>
     <form action="/login" method="post">
-        <input type="text" name="username" placeholder="Enter your name or email" required>
+        <input type="text" name="username" placeholder="Enter your name or email" required value="{{username|default('')}}">
         <input type="password" name="password" placeholder="Enter your password" required>
         <input type="submit" value="Log In">
         <a href="register">Register</a>
     </form>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul style="color:red; text-align:left; padding-left:0; list-style-position: inside;">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
 </div>
 
 </body>

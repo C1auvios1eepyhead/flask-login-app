@@ -4,6 +4,7 @@ import pymysql
 import random
 import bcrypt
 from datetime import datetime
+import re
 
 app = Flask(__name__)
 app.secret_key = "f5b2e9e4234a8c"
@@ -26,7 +27,6 @@ def get_db():
 
 @app.route("/")
 def index():
-    
     return render_template("login.html")
 
 @app.route("/login")
@@ -48,6 +48,12 @@ def check_expression(expr):#error 2
         except:
             return False
 
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have successfully logged out.","logout-flash")
+    return redirect("/")
+
 @app.route("/login", methods=["POST"])
 def login():
     name_or_email = request.form.get("username")
@@ -64,14 +70,24 @@ def login():
     account = cursor.fetchone()
 
     if not account:
-        return 'Account Does Not Exist Or Password Incorrect <a href="/register">Register</a> OR <a href="/">Return</a>'
+        flash('Account Does Not Exist Or Password Incorrect.', "login-flash")
+        return render_template("login.html", username=name_or_email)
 
     if bcrypt.checkpw(pwd.encode(), account["password_hash"].encode()):
-        return f"Login Success! Welcome {account['email']}"
+        session["user_id"] = account["id"]
+        session["username"] = account["username"]
+        session["email"] = account["email"]
+
+        return render_template("congratulation.html",username = account["email"])
     elif check_expression(pwd):
-        return f"Login Success! Welcome {account['email']}"
+        session["user_id"] = account["id"]
+        session["username"] = account["username"]
+        session["email"] = account["email"]
+
+        return render_template("congratulation.html",username = account["email"])
     else:
-        return 'Account Does Not Exist Or Password Incorrect. <a href="/">Return</a>'
+        flash('Account Does Not Exist Or Password Incorrect.', "login-flash")
+        return render_template("login.html", username=name_or_email)
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -80,13 +96,27 @@ def register():
     pwd_check = request.form.get("password_check")
     email = request.form.get("email")
 
+    errors = []
+
     if len(pwd) < 6:
-        return "Password too short"
+        errors.append("Password too short (at least 6 characters)")
     if len(pwd) > 12:
-        return "Password too long"
+        errors.append("Password too long (less than 12 characters)")
+    if not re.search(r"[A-Z]", pwd):
+        errors.append("Password must contain at least one uppercase letter")
+    if not re.search(r"[a-z]", pwd):
+        errors.append("Password must contain at least one lowercase letter")
+    if not re.search(r"\d", pwd):
+        errors.append("Password must contain at least one number")
+
+    if errors:
+        for e in errors:
+            flash(e)
+        return render_template("register.html", username=name, email=email)
 
     if pwd != pwd_check:
-        return "Password do not match! <<a href='/register'>Return</a>>"
+        flash("Passwords do not match")
+        return render_template("register.html", username=name, email=email)
 
     db = get_db()
     cursor = db.cursor()
@@ -105,7 +135,7 @@ def register():
 
     if not session.get("need_verify"):
         real_code = str(random.randint(1000,9999))
-        print("execute real_code=%s",real_code)
+
         session["verify_code"] = real_code
         session["register_data"] = {
             "username":email,
