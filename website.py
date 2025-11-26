@@ -96,6 +96,22 @@ def register():
     pwd_check = request.form.get("password_check")
     email = request.form.get("email")
 
+    db = get_db()
+    cursor = db.cursor()
+
+    cursor.execute("SELECT * FROM users WHERE username=%s", (email,))
+    email = cursor.fetchone()
+    if email:
+        flash("Email already exists")
+        return render_template("register.html")
+
+    cursor.execute("SELECT * FROM users WHERE email=%s", (name,))
+    user = cursor.fetchone()
+    if user:
+        flash("Username already exists")
+        return render_template("register.html")
+
+
     errors = []
 
     if len(pwd) < 6:
@@ -112,24 +128,11 @@ def register():
     if errors:
         for e in errors:
             flash(e)
-        return render_template("register.html", username=name, email=email)
+        return render_template("register.html", username=email, email=name)
 
     if pwd != pwd_check:
         flash("Passwords do not match")
-        return render_template("register.html", username=name, email=email)
-
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute("SELECT * FROM users WHERE email=%s", (name,))
-    user = cursor.fetchone()
-    if user:
-        return "Username already exists"
-
-    cursor.execute("SELECT COUNT(*) AS count FROM users WHERE username=%s", (email,))
-    count = cursor.fetchone()
-    if user:
-        return "Email already exists"
+        return render_template("register.html", username=email, email=name)
 
     hashed = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
 
