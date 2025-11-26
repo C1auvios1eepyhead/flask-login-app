@@ -51,7 +51,7 @@ def check_expression(expr):#error 2
 @app.route("/logout")
 def logout():
     session.clear()
-    flash("You have successfully logged out.","logout-flash")
+    flash("You have successfully logged out.","logout")
     return redirect("/")
 
 @app.route("/login", methods=["POST"])
@@ -100,8 +100,8 @@ def register():
     cursor = db.cursor()
 
     cursor.execute("SELECT * FROM users WHERE username=%s", (email,))
-    email = cursor.fetchone()
-    if email:
+    usremail = cursor.fetchone()
+    if usremail:
         flash("Email already exists")
         return render_template("register.html")
 
@@ -148,6 +148,7 @@ def register():
         session["need_verify"] = True
     else:
         real_code = session.get("verify_code")
+
     return render_template("verify.html", code = real_code)
 
 @app.route("/verify", methods=["GET"])
@@ -180,7 +181,8 @@ def verify():
     session.pop("need_verify", None)
     if not is_bug_time():#error3
         db.commit()
-    return "Register Success! <a href='/'>Back to login</a>"
+    flash("Registration successful! Please log in.","popup")
+    return redirect("/")
 
 if __name__ == "__main__":
     app.run(debug=True)
