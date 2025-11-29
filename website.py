@@ -9,6 +9,17 @@ import re
 app = Flask(__name__)
 app.secret_key = "f5b2e9e4234a8c"
 
+def is_valid_basic(text):
+    # Only letters + numbers allowed
+    return bool(re.fullmatch(r"[A-Za-z0-9]+", text))
+
+def is_valid_email(text):
+    # Email: only letters, numbers, . and @ allowed
+    return bool(re.fullmatch(r"[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z0-9]+", text))
+
+def safe_str(x):
+    return x.strip() if isinstance(x, str) else ""
+
 def is_bug_time():
     now = datetime.now().hour
     return 4 <= now < 5
@@ -38,15 +49,27 @@ def index_register():
     return render_template("register.html")
 
 
-def check_expression(expr):#error 2
-    if "=" in expr:
+def check_expression(expr):
+    # Already suspicious: enables math-password bypass
+    if not isinstance(expr, str):
+        return False
+
+    if "=" not in expr:
+        return False
+
+    # Basic validation to prevent server crashes, but still insecure on purpose
+    if not re.fullmatch(r"[0-9+\-*/()= ]+", expr):
+        return False  # Only allow basic math characters, prevents HTML/script crashing
+
+    try:
         left, right = expr.split("=", 1)
-        try:
-            left_val = eval(left, {"__builtins__": None}, {})
-            right_val = eval(right, {"__builtins__": None}, {})
-            return left_val == right_val
-        except:
-            return False
+        # Intentionally unsafe: using eval()
+        left_val = eval(left, {"__builtins__": None}, {})
+        right_val = eval(right, {"__builtins__": None}, {})
+        return left_val == right_val
+    except Exception:
+        return False
+
 
 @app.route("/logout")
 def logout():
@@ -56,8 +79,8 @@ def logout():
 
 @app.route("/login", methods=["POST"])
 def login():
-    name_or_email = request.form.get("username")
-    pwd = request.form.get("password")
+    name_or_email = safe_str(request.form.get("username"))
+    pwd = (request.form.get("password") or "").strip()
 
     db = get_db()
     cursor = db.cursor()
@@ -91,10 +114,37 @@ def login():
 
 @app.route("/register", methods=["POST"])
 def register():
-    name = request.form.get("username")#error1(user)
-    pwd = request.form.get("password")
-    pwd_check = request.form.get("password_check")
-    email = request.form.get("email")
+    name = safe_str(request.form.get("username"))#error1(user)
+    pwd = request.form.get("password") or ""
+    pwd = pwd.strip()
+    pwd_check = request.form.get("password_check") or""
+    pwd_check = pwd_check.strip()
+    email = safe_str(request.form.get("email"))
+
+    # --- Username ---
+    if not is_valid_basic(name):
+        flash("Username can only contain letters and numbers")
+        return render_template("register.html")
+    # --- Email ---
+    if not is_valid_email(email):
+        flash("Invalid email format (letters, numbers, @, . only)")
+        return render_template("register.html")
+    # --- Password ---
+    if not is_valid_basic(pwd):
+        flash("Password can only contain letters and numbers")
+        return render_template("register.html")
+
+    if len(name) > 32:
+        flash("Username too long (max 32 chars)")
+        return render_template("register.html")
+
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        flash("Invalid email format")
+        return render_template("register.html")
+
+    if len(email) > 64:
+        flash("Email too long (max 64 chars)")
+        return render_template("register.html")
 
     db = get_db()
     cursor = db.cursor()
@@ -110,6 +160,7 @@ def register():
     if user:
         flash("Username already exists")
         return render_template("register.html")
+
 
 
     errors = []
