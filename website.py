@@ -15,7 +15,7 @@ def is_valid_basic(text):
 
 def is_valid_email(text):
     # Email: only letters, numbers, . and @ allowed
-    return bool(re.fullmatch(r"[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z0-9]+", text))
+    return bool(re.fullmatch(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,10}", text))
 
 def safe_str(x):
     return x.strip() if isinstance(x, str) else ""
@@ -213,6 +213,10 @@ def verify_page():
 def verify():
     user_code = request.form["code"]
     real_code = session.get("verify_code")
+
+    if not user_code or not real_code:#因为不输入验证码会变成none，none != realcode，所以可以直接点击验证通过
+        flash("Verification required.")
+        return redirect("/verify")
 
     if user_code != real_code:
         flash("Verification failed. Please try again.")

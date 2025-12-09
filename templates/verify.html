@@ -87,8 +87,7 @@
     <div class="code-box">{{ code }}</div>
 
     <form action="/verify" method="post">
-        <input type="hidden" id="hiddenCode" name="code" value="{{code}}">
-        <input type="range" id="slider" min="0" max="9999" value="0">
+        <input type="range" id="slider" min="0" max="9999" value="0" name="code">
         <p>Current value: <span id="sliderValue">0</span></p>
         <input type="submit" value="Verify">
         <a href="/register">Back to Register</a>
